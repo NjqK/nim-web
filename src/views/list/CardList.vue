@@ -16,9 +16,9 @@
         <a-list
           rowKey="id"
           :grid="{gutter: 24, lg: 3, md: 2, sm: 1, xs: 1}"
-          :dataSource="dataSource"
+          :dataSource="serverInfo"
         >
-          <a-list-item slot="renderItem" slot-scope="item">
+          <a-list-item slot="renderItem" slot-scope="item, index">
             <template v-if="false">
               <a-button class="new-btn" type="dashed">
                 <a-icon type="plus"/>
@@ -50,37 +50,36 @@
                     </template>
                   </template>
                 </a-card-meta>
-                <template v-if="item.name === 'connector'">
-                  <template class="ant-card-actions" slot="actions">
-                    <div>
-                      <a-button type="small" @click="showRecover">
-                        恢复
-                      </a-button>
-                      <a-modal
-                        title="恢复服务"
-                        :visible="recoverVisible"
-                        :confirm-loading="confirmLoading"
-                        @ok="handlerRecover(item)"
-                        @cancel="handleCancel"
-                      >
-                        <p>{{ recoverMsg }}</p>
-                      </a-modal>
-                    </div>
-                    <div>
-                      <a-button type="small" @click="showRelease">
-                        转移长连接
-                      </a-button>
-                      <a-modal
-                        title="转移长连接"
-                        :visible="releaseVisible"
-                        :confirm-loading="confirmLoading"
-                        @ok="handlerRelease(item)"
-                        @cancel="handleCancel"
-                      >
-                        <p>{{ releaseMsg }}</p>
-                      </a-modal>
-                    </div>
-                  </template>
+
+                <template v-if="item.name === 'connector'" class="ant-card-actions" slot="actions">
+                  <div>
+                    <a-button type="small" @click="showRecover(index)">
+                      恢复
+                    </a-button>
+                    <a-modal
+                      title="恢复服务"
+                      :visible="recoverVisible"
+                      :confirm-loading="confirmLoading"
+                      @ok="handlerRecover"
+                      @cancel="handleCancel"
+                    >
+                      <p>{{ recoverMsg }}</p>
+                    </a-modal>
+                  </div>
+                  <div>
+                    <a-button type="small" @click="showRelease(index)">
+                      转移长连接
+                    </a-button>
+                    <a-modal
+                      title="转移长连接"
+                      :visible="releaseVisible"
+                      :confirm-loading="confirmLoading"
+                      @ok="handlerRelease"
+                      @cancel="handleCancel"
+                    >
+                      <p>{{ releaseMsg }}</p>
+                    </a-modal>
+                  </div>
                 </template>
               </a-card>
             </template>
@@ -98,19 +97,18 @@
     recoverServer
   } from '@/api/admin'
 
-  const dataSource = []
-
   export default {
     name: 'CardList',
     data () {
       return {
         extraImage: 'https://gw.alipayobjects.com/zos/rmsportal/RzwpdLnhmvDJToTdfDPe.png',
-        dataSource,
+        serverInfo: [],
         recoverMsg: '确定要要恢复服务吗？',
         releaseMsg: '确定要转移长连接吗？',
         recoverVisible: false,
         releaseVisible: false,
-        confirmLoading: false
+        confirmLoading: false,
+        myIndex: 0
       }
     },
     created () {
@@ -119,11 +117,9 @@
     methods: {
       getServerInfoByName (serverType) {
         getServerInfo(serverType).then(res => {
-          for (let i = 0; i < dataSource.length; i++) {
-            dataSource.pop()
-          }
+          this.serverInfo = []
           for (const resKey in res) {
-            dataSource.push(res[resKey])
+            this.serverInfo.push(res[resKey])
           }
         })
       },
@@ -138,13 +134,16 @@
           this.getServerInfoByName('connector')
         }
       },
-      showRecover () {
+      showRecover (index) {
+        this.myIndex = index
         this.recoverVisible = true
       },
-      showRelease () {
+      showRelease (index) {
+        this.myIndex = index
         this.releaseVisible = true
       },
-      handlerRelease (val) {
+      handlerRelease () {
+        const val = this.serverInfo[this.myIndex]
         console.log('======ReleaseConnections！')
         this.releaseMsg = '转移长连接中，时间可能较长，请等候...'
         this.confirmLoading = true
@@ -160,7 +159,8 @@
           this.releaseMsg = '确定要转移长连接吗？'
         }, 2000)
       },
-      handlerRecover (val) {
+      handlerRecover () {
+        const val = this.serverInfo[this.myIndex]
         console.log('======RecoveringServer！')
         this.recoverMsg = '恢复服务中，请稍候...'
         this.confirmLoading = true
